@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concept Match: Linear Algebra & Statistics</title>
+<style>
+:root{--bg:#eef3f7;--ink:#14213d;--card:#fff;--line:#c5d2de;--back:#14213d;--hi:#ffc93c;--ok:#1b8a5a;--bad:#c8372d;--mut:#5b6b7e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1826;--ink:#e8eef6;--card:#1a2638;--line:#2c3c55;--back:#2f4a75;--mut:#93a3b8;--ok:#4cc38a;--bad:#ff7a70}}
+:root[data-theme="dark"]{--bg:#0f1826;--ink:#e8eef6;--card:#1a2638;--line:#2c3c55;--back:#2f4a75;--mut:#93a3b8;--ok:#4cc38a;--bad:#ff7a70}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background-color:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:28px 28px;min-height:100vh}
+main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mut);margin:0 0 16px;max-width:60ch;line-height:1.5}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);border:2px solid var(--ink);padding:10px 12px;margin-bottom:14px}
+.bar label{font-size:.85rem;color:var(--mut);display:flex;align-items:center;gap:6px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:6px 8px;width:9em}
+input.n{width:5em}
+button{font:inherit;font-weight:600;cursor:pointer;color:var(--ink);background:var(--hi);border:2px solid var(--ink);padding:7px 14px}
+button:focus-visible,.card:focus-visible{outline:3px solid var(--ok);outline-offset:2px}
+.stats{margin-left:auto;display:flex;gap:16px;font-variant-numeric:tabular-nums}
+.stats b{font-size:1.25rem}
+.stats span{font-size:.75rem;color:var(--mut);display:block}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card{position:relative;aspect-ratio:1/1.05;perspective:700px;border:0;padding:0;background:none;cursor:pointer}
+.in{position:absolute;inset:0;transition:transform .35s;transform-style:preserve-3d}
+.card.up .in,.card.done .in{transform:rotateY(180deg)}
+.f,.b{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;border:2px solid var(--ink)}
+.b{background:var(--back);color:var(--hi);font-size:1.8rem;font-family:Georgia,serif;font-style:italic}
+.f{transform:rotateY(180deg);background:var(--card);font-size:clamp(.72rem,2.3vw,.98rem);line-height:1.25;font-weight:600}
+.f.m{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;font-size:clamp(.9rem,2.8vw,1.2rem)}
+.card.done .f{background:var(--ok);color:#fff;border-color:var(--ok)}
+.card.bad .f{border-color:var(--bad);box-shadow:inset 0 0 0 3px var(--bad)}
+.panel{background:var(--card);border:2px solid var(--ink);padding:14px;margin-top:14px}
+.panel h2{font-size:1.05rem;margin:0 0 8px}
+ol{margin:0;padding-left:1.3em;line-height:1.7}
+.msg{font-weight:600;margin:0 0 10px}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){.in{transition:none}}
+@media (max-width:420px){.grid{gap:6px}.stats{margin-left:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>Concept Match</h1>
+<p class="sub">Match each term with its formula or meaning. Your score is your time in seconds plus 3 seconds for every wrong pair. Lowest score wins. Give every team the same round code so they get the same layout.</p>
+
+<div class="bar">
+<label>Team <input id="team" value="Team 1" maxlength="20"></label>
+<label>Round code <input id="seed" class="n" type="number" value="1"></label>
+<button id="start">Start</button>
+<div class="stats" aria-live="off">
+<div><b id="time">0.0</b><span>seconds</span></div>
+<div><b id="miss">0</b><span>wrong pairs</span></div>
+</div>
+</div>
+
+<div class="grid" id="grid" aria-label="Memory cards"></div>
+
+<div class="panel hide" id="result">
+<p class="msg" id="msg"></p>
+<button id="again">Play again</button>
+</div>
+
+<div class="panel">
+<h2>Scoreboard (this device)</h2>
+<ol id="board"><li style="list-style:none;margin-left:-1.3em;color:var(--mut)">No finished games yet. Start a round.</li></ol>
+</div>
+</main>
+<script>
+const PAIRS=[
+["Eigenvector","Av = λv",1],
+["Variance","E[(X − μ)²]",1],
+["p-value","P(data this extreme | H₀ is true)",0],
+["Rank of a matrix","Number of linearly independent columns",0],
+["Singular matrix","det(A) = 0, so no inverse",0],
+["Central Limit Theorem","Sample means approach a normal curve as n grows",0],
+["Orthogonal vectors","u · v = 0",1],
+["Standard error","σ / √n",1]
+];
+const grid=document.getElementById('grid');
+let cards=[],open=[],matched=0,miss=0,t0=0,timer=null,running=false,lock=false,scores=[];
+
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function build(seed){
+  const list=[];
+  PAIRS.forEach((p,i)=>{list.push({id:i,txt:p[0],m:0});list.push({id:i,txt:p[1],m:p[2]})});
+  cards=shuffle(list,seed);
+  grid.innerHTML='';
+  cards.forEach((c,i)=>{
+    const b=document.createElement('button');
+    b.className='card';b.setAttribute('aria-label','Card '+(i+1));
+    b.innerHTML='<div class="in"><div class="b">?</div><div class="f'+(c.m?' m':'')+'"></div></div>';
+    b.querySelector('.f').textContent=c.txt;
+    b.onclick=()=>flip(i);
+    c.el=b;grid.appendChild(b);
+  });
+}
+function tick(){document.getElementById('time').textContent=((Date.now()-t0)/1000).toFixed(1)}
+function start(){
+  clearInterval(timer);
+  build(parseInt(document.getElementById('seed').value)||1);
+  open=[];matched=0;miss=0;lock=false;running=true;
+  document.getElementById('miss').textContent=0;
+  document.getElementById('time').textContent='0.0';
+  document.getElementById('result').classList.add('hide');
+  t0=Date.now();timer=setInterval(tick,100);
+}
+function flip(i){
+  if(!running||lock)return;
+  const c=cards[i];
+  if(c.el.classList.contains('up')||c.el.classList.contains('done'))return;
+  c.el.classList.add('up');open.push(c);
+  if(open.length<2)return;
+  const [a,b]=open;
+  if(a.id===b.id){
+    [a,b].forEach(x=>{x.el.classList.remove('up');x.el.classList.add('done')});
+    open=[];matched++;
+    if(matched===PAIRS.length)finish();
+  }else{
+    miss++;document.getElementById('miss').textContent=miss;lock=true;
+    [a,b].forEach(x=>x.el.classList.add('bad'));
+    setTimeout(()=>{[a,b].forEach(x=>x.el.classList.remove('up','bad'));open=[];lock=false},1000);
+  }
+}
+function finish(){
+  running=false;clearInterval(timer);tick();
+  const secs=(Date.now()-t0)/1000,score=secs+miss*3;
+  const team=document.getElementById('team').value.trim()||'Team';
+  scores.push({team,score,secs,miss});
+  scores.sort((x,y)=>x.score-y.score);
+  document.getElementById('msg').textContent=team+': '+score.toFixed(1)+' points ('+secs.toFixed(1)+' s + '+miss+' wrong × 3 s)';
+  document.getElementById('result').classList.remove('hide');
+  const ol=document.getElementById('board');ol.innerHTML='';
+  scores.forEach(s=>{const li=document.createElement('li');li.textContent=s.team+' — '+s.score.toFixed(1)+' ('+s.secs.toFixed(1)+' s, '+s.miss+' wrong)';ol.appendChild(li)});
+}
+document.getElementById('start').onclick=start;
+document.getElementById('again').onclick=start;
+build(1);
+</script>
+</body>
+</html>
